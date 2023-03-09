@@ -5,8 +5,10 @@ import "./ProblemBox.css";
 
 const ProblemBox = ({ index, width, problemStatus, displayText }) => {
   return (
-    <span className={`problemBox problemBox-${problemStatus}`} style={{ width }} key={index}>
-      {displayText}
+    <span className={`problemBox problemBox-${problemStatus} center p0 m0`} style={{ width }} key={index}>
+      {displayText[0]}
+      {displayText.length>1 && <><br/>{displayText[1]}</>}
+      {displayText.length>2 && <><br/>{displayText[2]}</>}
     </span>
   );
 };

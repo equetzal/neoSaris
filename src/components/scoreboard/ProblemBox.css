@@ -47,3 +47,8 @@
   background-color: #282828;
   border: 2px solid transparent;
 }
+
+.center{
+  text-align: center;
+  font-size: inherit!important;
+}

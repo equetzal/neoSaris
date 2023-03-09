@@ -32,6 +32,8 @@ const Data = z.object({
       contestantName: z.string(),
       problemIndex: z.string(),
       verdict: z.string(),
+      problemScore: z.number(),
+      penalty: z.number(),
     })
   ),
 });

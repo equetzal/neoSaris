@@ -19,6 +19,8 @@ class Scoreboard extends Component {
         result.timeSubmitted = submission.timeSubmitted;
         result.verdict = submission.verdict;
         result.problemIndex = submission.problemIndex;
+        result.problemScore = submission.problemScore;
+        result.penalty = submission.penalty;
         submissionsOnContest.push(result);
       }
     });
@@ -39,6 +41,8 @@ class Scoreboard extends Component {
         result.timeSubmitted = submission.timeSubmitted;
         result.verdict = submission.verdict;
         result.problemIndex = submission.problemIndex;
+        result.problemScore = submission.problemScore;
+        result.penalty = submission.penalty;
         if (submissionsData.verdicts.wrongAnswerWithoutPenalty.includes(result.verdict) === false) {
           submissionsOnFrozen.push(result);
         }
@@ -49,14 +53,17 @@ class Scoreboard extends Component {
 
   resetTeams(teams) {
     for (let i = 0; i < teams.length; i++) {
-      teams[i].position = 0;
-      teams[i].penalty = 0;
-      teams[i].solved = 0;
+      let currTeam = teams[i];
+      currTeam.position = 0;
+      currTeam.penalty = 0;
+      currTeam.solved = 0;
+      currTeam.totalScore = 0;
       for (let j = 0; j < this.state.numberOfProblems; j++) {
-        teams[i].isProblemSolved[j] = 0;
-        teams[i].isFirstToSolve[j] = 0;
-        teams[i].triesOnProblems[j] = 0;
-        teams[i].penaltyOnProblem[j] = 0;
+        currTeam.isProblemSolved[j] = 0;
+        currTeam.isFirstToSolve[j] = 0;
+        currTeam.triesOnProblems[j] = 0;
+        currTeam.penaltyOnProblem[j] = 0;
+        currTeam.problemScore[j] = 0;
       }
     }
     return teams;
@@ -73,71 +80,65 @@ class Scoreboard extends Component {
       problemHasBeenSolved.push(0);
     }
 
-    for (let h = 0; h < submissions.length; h++) {
-      let submission = submissions[h];
+    submissions.forEach(submission =>{
+      if(submission.problemIndex === "D" && submission.contestantName === "ccup2018-18(E3)") console.log(submission)
+      let currTeam = teams.filter(t => t.name === submission.contestantName)[0];
+      let currProblem = this.props.submissionsData.problems.filter(p => p.index === submission.problemIndex)[0];
+      let problemIndex = this.props.submissionsData.problems.indexOf(currProblem);
       //Wrong Answer without penalty
-      if (
-        this.props.submissionsData.verdicts.wrongAnswerWithoutPenalty.includes(submission.verdict)
-      ) {
-        continue;
+      if (this.props.submissionsData.verdicts.wrongAnswerWithoutPenalty.includes(submission.verdict)) {
+        // continue;
       } else if (this.props.submissionsData.verdicts.accepted.includes(submission.verdict)) {
-        // Update accepted problem only if has not been accepted before.
-        for (let i = 0; i < teams.length; i++) {
-          if (teams[i].name === submission.contestantName) {
-            for (let j = 0; j < this.state.numberOfProblems; j++) {
-              let problemLetter = this.props.submissionsData.problems[j].index;
-              if (problemLetter === submission.problemIndex && teams[i].isProblemSolved[j] === 0) {
-                teams[i].isProblemSolved[j] = 1;
-                teams[i].penaltyOnProblem[j] = submission.timeSubmitted;
-                teams[i].penalty += submission.timeSubmitted + teams[i].triesOnProblems[j] * 20;
-                teams[i].solved++;
-                if (problemHasBeenSolved[j] === 0) {
-                  problemHasBeenSolved[j] = 1;
-                  teams[i].isFirstToSolve[j] = 1;
-                }
-                break;
-              }
+        // Updates best score
+        if (currTeam.problemScore[problemIndex] < submission.problemScore){
+          // substract previous score
+          currTeam.totalScore -= currTeam.problemScore[problemIndex];
+          // update score
+          currTeam.problemScore[problemIndex] = submission.problemScore;
+          currTeam.totalScore += submission.problemScore;
+
+
+          // Adds penalty as omegaup says
+          // gets extra penalty
+          let extraPenalty = currTeam.triesOnProblems[problemIndex] * 10;
+          currTeam.penalty -= currTeam.penaltyOnProblem[problemIndex];
+          currTeam.penaltyOnProblem[problemIndex] = submission.penalty + extraPenalty;
+          currTeam.penalty += submission.penalty + extraPenalty;
+        }
+
+        if(submission.verdict === "PA"){
+        }
+        else if(submission.verdict === "AC"){
+          if(currTeam.isProblemSolved[problemIndex] === 0){
+            if (problemHasBeenSolved[problemIndex] === 0) {
+              problemHasBeenSolved[problemIndex] = 1;
+              currTeam.isFirstToSolve[problemIndex] = 1;
             }
-            break;
+            currTeam.solved++;
+            // Update accepted problem only if has not been accepted before.
+            currTeam.isProblemSolved[problemIndex] = 1;
           }
         }
+
+        currTeam.triesOnProblems[problemIndex]++;
+
       } else {
         // Update penalty problem only if has not been accepted before.
-        for (let i = 0; i < teams.length; i++) {
-          if (teams[i].name === submission.contestantName) {
-            for (let j = 0; j < this.state.numberOfProblems; j++) {
-              let problemLetter = this.props.submissionsData.problems[j].index;
-              if (problemLetter === submission.problemIndex && teams[i].isProblemSolved[j] === 0) {
-                teams[i].triesOnProblems[j]++;
-                break;
-              }
-            }
-            break;
-          }
-        }
+        currTeam.triesOnProblems[problemIndex]++;
       }
-    }
+    })
     return teams;
   }
 
   sortTeams(teams) {
     let teamsSorted = teams.sort(function (a, b) {
-      if (a.solved !== b.solved) {
-        return b.solved - a.solved;
+      if(a.totalScore === b.totalScore){
+        return b.penalty < a.penalty ? 1 : 0;
       }
-      return a.penalty - b.penalty;
+      return a.totalScore < b.totalScore ? 1 : 0;
     });
-
-    let position = 1;
-    for (var i = 0; i < teamsSorted.length; i++) {
-      if (
-        i > 0 &&
-        (teamsSorted[i].solved !== teamsSorted[i - 1].solved ||
-          teamsSorted[i].penalty !== teamsSorted[i - 1].penalty)
-      ) {
-        position++;
-      }
-      teamsSorted[i].position = position;
+    for (let i = 0; i < teamsSorted.length; i++) {
+      teamsSorted[i].position = i+1;
     }
     return teamsSorted;
   }
@@ -201,12 +202,14 @@ class Scoreboard extends Component {
       let triesOnProblems = [];
       let isProblemSolved = [];
       let penaltyOnProblem = [];
+      let problemScore = [];
       let isFirstToSolve = [];
       for (let j = 0; j < props.submissionsData.problems.length; j++) {
         isProblemSolved.push(0);
         isFirstToSolve.push(0);
         triesOnProblems.push(0);
         penaltyOnProblem.push(0);
+        problemScore.push(0);
       }
 
       let result = {};
@@ -215,10 +218,12 @@ class Scoreboard extends Component {
       result.id = contestant.id;
       result.penalty = 0;
       result.solved = 0;
+      result.totalScore = 0;
       result.isProblemSolved = isProblemSolved;
       result.isFirstToSolve = isFirstToSolve;
       result.triesOnProblems = triesOnProblems;
       result.penaltyOnProblem = penaltyOnProblem;
+      result.problemScore = problemScore;
       return result;
     });
 

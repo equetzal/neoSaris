@@ -33,7 +33,7 @@ class TableRow extends Component {
     let team = this.props.team;
     for (let i = 0; i < this.props.numberOfProblems; i++) {
       if (this.props.problems[i].index === problemLetter) {
-        return team.triesOnProblems[i] + " - " + team.penaltyOnProblem[i];
+        return `${team.penaltyOnProblem[i]} (${team.triesOnProblems[i]})`;
       }
     }
     return problemLetter;
@@ -179,6 +179,50 @@ class TableRow extends Component {
       this.props.classNameForThisRow.length !== 0
     );
   }
+  getBestScore(problemLetter) {
+    let team = this.props.team;
+    for (let i = 0; i < this.props.numberOfProblems; i++) {
+      if (this.props.problems[i].index === problemLetter) {
+        return team.problemScore[i].toFixed(2);
+      }
+    }
+    return problemLetter;
+  }
+
+  isPartiallySolved(problemLetter) {
+    let team = this.props.team;
+    for (let i = 0; i < this.props.numberOfProblems; i++) {
+      if (this.props.problems[i].index === problemLetter) {
+        return team.problemScore[i] > 0 && team.problemScore[i] < 100;
+      }
+    }
+    return problemLetter;
+  }
+
+  getPenalty(problemLetter) {
+    let team = this.props.team;
+    for (let i = 0; i < this.props.numberOfProblems; i++) {
+      if (this.props.problems[i].index === problemLetter) {
+        return team.penaltyOnProblem[i];
+      }
+    }
+    return problemLetter;
+  }
+  getTries(problemLetter) {
+    let team = this.props.team;
+    for (let i = 0; i < this.props.numberOfProblems; i++) {
+      if (this.props.problems[i].index === problemLetter) {
+        return team.triesOnProblems[i];
+      }
+    }
+    return problemLetter;
+  }
+
+  obtenerEnviosTotales(team) {
+    let envios = 0;
+    team.triesOnProblems.forEach(t => envios+=t);
+    return envios;
+  }
 
   render() {
     let problems = this.props.problems;
@@ -196,16 +240,19 @@ class TableRow extends Component {
         } else {
           verdict = "Accepted";
         }
-        textToShowInProblem = this.numberOfTriesOnAcceptedProblem(problem.index);
+        textToShowInProblem = [problem.index, `${this.getPenalty(problem.index)} (${this.getTries(problem.index)})`];
+      } else if (this.isPartiallySolved(problem.index)) {
+        verdict = "Resolving";
+        textToShowInProblem = [problem.index, this.getBestScore(problem.index), `${this.getPenalty(problem.index)} (${this.getTries(problem.index)})`];
       } else if (this.isACurrentFrozenProblem(problem.index) === true) {
         verdict = "Resolving";
-        textToShowInProblem = this.numberOfTriesOnFrozenProblem(problem.index);
+        textToShowInProblem = [problem.index, this.numberOfTriesOnFrozenProblem(problem.index)];
       } else if (this.isAPendingProblem(problem.index) === true) {
         verdict = "Pending";
-        textToShowInProblem = this.numberOfTriesOnFrozenProblem(problem.index);
+        textToShowInProblem = [problem.index, this.numberOfTriesOnFrozenProblem(problem.index)];
       } else if (this.hasTriedProblem(problem.index) === true) {
         verdict = "WrongAnswer";
-        textToShowInProblem = this.numberOfTriesOnTriedProblem(problem.index);
+        textToShowInProblem = [problem.index, this.numberOfTriesOnTriedProblem(problem.index)];
       }
 
       return {
@@ -242,9 +289,15 @@ class TableRow extends Component {
           </div>
         </div>
         {/*ProblemsSolved*/}
-        <span className="tableRow-ResolvedProblems">{this.props.team.solved}</span>
+        <span className="tableRow-ResolvedProblems">{this.props.team.totalScore.toFixed(2)}</span>
         {/*Penalty*/}
-        <span className="tableRow-Penalty">{this.props.team.penalty}</span>
+        <span className="tableRow-Penalty">{
+          <>
+            {this.props.team.penalty.toFixed(2)}
+            <br/>
+            ({this.obtenerEnviosTotales(this.props.team)})
+          </>
+        }</span>
       </div>
     );
   }
